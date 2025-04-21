@@ -3,13 +3,8 @@ from PIL import Image
 import numpy as np
 from ultralytics import YOLO
 import os
-
-# Try importing cv2 with fallback
-try:
-    import cv2
-except ImportError:
-    st.error("OpenCV (cv2) is not installed. Please add it to your requirements.txt")
-    st.stop()
+import torch
+import cv2
 
 # Set page config
 st.set_page_config(
@@ -22,13 +17,19 @@ st.set_page_config(
 st.title("Custom YOLOv8 Pose Detection")
 st.write("Upload an image to detect poses using your custom trained YOLOv8m model")
 
-# Function to load the custom YOLO model
+# Secure model loading function
 @st.cache_resource
 def load_model(model_path="model.pt"):
     try:
         if not os.path.exists(model_path):
             st.error(f"Model file not found at: {model_path}")
             return None
+        
+        # Add necessary globals to safe list
+        from ultralytics.nn.tasks import PoseModel
+        torch.serialization.add_safe_globals([PoseModel])
+        
+        # Load model with proper security settings
         model = YOLO(model_path)
         st.success("Model loaded successfully!")
         return model
@@ -58,6 +59,7 @@ def main():
             "Model path", "model.pt",
             help="Path to your YOLOv8 model file"
         )
+        st.warning("Only use models from trusted sources!")
     
     model = load_model(model_path)
     
